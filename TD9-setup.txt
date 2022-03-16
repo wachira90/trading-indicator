@@ -1,0 +1,258 @@
+// ==============================================
+// TD Sequential
+// Feel free to PM me your comments, suggestions and bug reports at https://www.tradingview.com/u/Yngvar/
+// ==============================================
+
+//@version=2
+study("TD Sequential (Setup and Countdown)", overlay=true)
+
+// OPTIONAL PARAMETERS //
+
+transp            = input(0, title="Number Transparency")
+priceFlipRequired = input(true, title="Setup - Require price flip for initiation")
+showBuySetup      = input(true, title="Setup - Show Buy Setup")
+showSellSetup     = input(true, title="Setup - Show Sell Setup")
+showOnlySetupNine = input(false,title="Setup - Show Only Completed Nines")
+showResistance    = input(true, title="Setup Trend - Show Resistance Lines")
+showSupport       = input(true, title="Setup Trend - Show Support Lines")
+showBuyCountdown  = input(true, title="Countdown - Show Buy Countdown")
+showSellCountdown = input(true, title="Countdown - Show Sell Countdown")
+showRiskLines     = input(false, title="Risk Lines - Show (Beta)")
+
+// PRICE FLIP AND SETUP //
+
+buySetup = if close < close[4]
+    if priceFlipRequired
+        if close[1] > close[5] or 0 < nz(buySetup[1])
+            nz(buySetup[1]) + 1
+        else
+            0
+    else
+        if nz(buySetup[1]) == 9
+            1
+        else
+            nz(buySetup[1]) + 1
+else
+    0
+
+sellSetup = if close > close[4]
+    if priceFlipRequired
+        if close[1] < close[5] or 0 < nz(sellSetup[1])
+            nz(sellSetup[1]) + 1
+        else
+            0
+    else
+        if nz(sellSetup[1]) == 9
+            1
+        else
+            nz(sellSetup[1]) + 1
+else
+    0
+
+// PERFECTED SETUP CONDITIONS //
+
+sellPerfection = sellSetup==9 and ((high > high[2] and high > high[3]) or (high[1] > high[2] and high[1] > high[3]))
+buyPerfection  = buySetup==9 and ((low < low[2] and low < low[3]) or (low[1] < low[2] and low[1] < low[3]))
+
+// NUMBER PLOTS //
+
+plotchar(sellSetup==1 and showSellSetup and not showOnlySetupNine,char='1',color=green,location=location.abovebar,transp=transp)
+plotchar(sellSetup==2 and showSellSetup and not showOnlySetupNine,char='2',color=green,location=location.abovebar,transp=transp)
+plotchar(sellSetup==3 and showSellSetup and not showOnlySetupNine,char='3',color=green,location=location.abovebar,transp=transp)
+plotchar(sellSetup==4 and showSellSetup and not showOnlySetupNine,char='4',color=green,location=location.abovebar,transp=transp)
+plotchar(sellSetup==5 and showSellSetup and not showOnlySetupNine,char='5',color=green,location=location.abovebar,transp=transp)
+plotchar(sellSetup==6 and showSellSetup and not showOnlySetupNine,char='6',color=green,location=location.abovebar,transp=transp)
+plotchar(sellSetup==7 and showSellSetup and not showOnlySetupNine,char='7',color=green,location=location.abovebar,transp=transp)
+plotchar(sellSetup==8 and showSellSetup and not showOnlySetupNine,char='8',color=green,location=location.abovebar,transp=transp)
+plotshape(sellSetup==9 and showSellSetup and not sellPerfection,style=shape.arrowdown,size=size.small,color=red,location=location.abovebar,text="9",textcolor=green,transp=transp)
+plotshape(sellPerfection and showSellSetup,style=shape.arrowdown,size=size.small,color=red,location=location.abovebar,text="9P",textcolor=green,transp=transp)
+
+plotchar(buySetup==1 and showBuySetup and not showOnlySetupNine,char='1',color=red,location=location.abovebar,transp=transp)
+plotchar(buySetup==2 and showBuySetup and not showOnlySetupNine,char='2',color=red,location=location.abovebar,transp=transp)
+plotchar(buySetup==3 and showBuySetup and not showOnlySetupNine,char='3',color=red,location=location.abovebar,transp=transp)
+plotchar(buySetup==4 and showBuySetup and not showOnlySetupNine,char='4',color=red,location=location.abovebar,transp=transp)
+plotchar(buySetup==5 and showBuySetup and not showOnlySetupNine,char='5',color=red,location=location.abovebar,transp=transp)
+plotchar(buySetup==6 and showBuySetup and not showOnlySetupNine,char='6',color=red,location=location.abovebar,transp=transp)
+plotchar(buySetup==7 and showBuySetup and not showOnlySetupNine,char='7',color=red,location=location.abovebar,transp=transp)
+plotchar(buySetup==8 and showBuySetup and not showOnlySetupNine,char='8',color=red,location=location.abovebar,transp=transp)
+plotshape(buyPerfection and showBuySetup,style=shape.arrowup,size=size.small,color=green,location=location.abovebar,text="9P",textcolor=red,transp=transp)
+plotshape(buySetup==9 and not buyPerfection and showBuySetup,style=shape.arrowup,size=size.small,color=green,location=location.abovebar,text="9",textcolor=red,transp=transp)
+
+// ALERTS //
+
+alertcondition(barssince(sellSetup == 9) == 1, title='Sell Setup Completed', message='TD Sell Setup Completed')
+alertcondition(barssince(buySetup == 9) == 1, title='Buy Setup Completed', message='TD Buy Setup Completed')
+
+// SETUP TREND LINES //
+
+TDSTSupport = sellSetup == 9 ? lowest(low, 9) : nz(TDSTSupport[1])
+TDSTSupportIntact = close >= TDSTSupport and (barssince(close < TDSTSupport) > barssince(sellSetup == 9))
+plot(TDSTSupportIntact and showSupport ? TDSTSupport : na, style=circles, linewidth=1, color=green)
+
+TDSTResistance = buySetup == 9 ? highest(high, 9) : nz(TDSTResistance[1])
+TDSTResistanceIntact = close <= TDSTResistance and (barssince(close > TDSTResistance) > barssince(buySetup == 9))
+plot(TDSTResistanceIntact and showResistance ? TDSTResistance : na, style=circles, linewidth=1, color=red)
+
+// COUNTDOWN - BUY //
+
+// Cancelation Filter
+sinceBuyNine      = barssince(buySetup == 9)
+sinceSellNine     = barssince(sellSetup == 9)
+lastSetupIsBuy    = sinceBuyNine < sinceSellNine // last completed setup is a buy setup
+lastSetupIsSell   = not lastSetupIsBuy
+brokeResistance   = barssince(low > TDSTResistance) < sinceBuyNine // did full candle trade above tdst resistance generated by last buy setup
+buyCancelationFilter = lastSetupIsSell or brokeResistance
+
+// Cancelation Qualifier 1 - Last buy setup larger than the one before but less then 1.618 times it's size
+lastBuyLowestVal         = buySetup == 9 ? lowest(low, 9) : (buySetup > 9 ? min(nz(lastBuyLowestVal[1]), low) : nz(lastBuyLowestVal[1]))
+lastBuySetupRange        = TDSTResistance - lastBuyLowestVal
+secondLastBuyRange       = buySetup == 9 ? nz(lastBuySetupRange[1]) : nz(secondLastBuyRange[1])
+buyCancelationQualifier1 = (secondLastBuyRange <= lastBuySetupRange) and (lastBuySetupRange < 1.618 * secondLastBuyRange)
+
+// Cancelation Qualifier 2 - Last buy setup not within the last one
+lastBuyHighestClose      = buySetup == 9 ? highest(close, 9) : (buySetup > 9 ? max(nz(lastBuyHighestClose[1]), close) : nz(lastBuyHighestClose[1]))
+lastBuyLowestClose       = buySetup == 9 ? lowest(close, 9) : (buySetup > 9 ? min(nz(lastBuyLowestClose[1]), close) : nz(lastBuyLowestClose[1]))
+secondLastBuyHighestVal  = buySetup == 9 ? TDSTResistance[1] : nz(secondLastBuyHighestVal[1])
+secondLastBuyLowestVal   = buySetup == 9 ? nz(lastBuyLowestVal[1]) : nz(secondLastBuyLowestVal[1])
+
+aboveSecondLastBuyRange  = lastBuyHighestClose > secondLastBuyHighestVal
+belowSecondLastBuyRange  = lastBuyLowestClose < secondLastBuyLowestVal
+
+sinceSecondLastBuy       = buySetup == 9 ? nz(sinceBuyNine[1])+1 : nz(sinceSecondLastBuy[1])+1
+sellSetupBetweenTwoBuys  = sinceSecondLastBuy > sinceSellNine and sinceSellNine > sinceBuyNine
+buyCancelationQualifier2 = aboveSecondLastBuyRange or belowSecondLastBuyRange or sellSetupBetweenTwoBuys
+
+// Recycle Qualifier
+recycleQualifier = buySetup == 18 // To do, a bit unclear
+
+// Miscellaneous
+initiateBuyCountdown  = (close <= low[2]) and (buySetup == 9 or barssince(close[1] <= low[3])+1 > sinceBuyNine)
+buyCountdownCompleted = low[1] <= valuewhen(nz(buyCountdown[1]) == 7, close, 0)
+newBuySetupDuringCountdown = barssince(buySetup == 9) < barssince(buyCountdown[1] == 1)
+    	
+// Countdown Logic
+buyCountdown = if buyCancelationFilter
+	0
+else
+    if nz(buyCountdown[1]) == 0            // previous bar buyCountdown is 0
+        if initiateBuyCountdown
+            1
+        else
+            0
+    else
+        if nz(buyCountdown[1]) < 13        // previous bar 0 < buyCountdown < 13
+            if newBuySetupDuringCountdown and (buyCancelationQualifier1 or buyCancelationQualifier2)
+                1
+            else
+                if close <= low[2]
+                    nz(buyCountdown[1]) + 1
+                else
+                    nz(buyCountdown[1])
+        else                               // previous bar buyCountdown is 13
+            if newBuySetupDuringCountdown and (buyCancelationQualifier1 or buyCancelationQualifier2)
+                1
+            else
+                if buyCountdownCompleted
+                    0
+                else
+                    nz(buyCountdown[1])    // completion is deferred until condition is satisfied
+
+// Number Plots	
+plotchar(buyCountdown!=buyCountdown[1] and buyCountdown==1 and showBuyCountdown,char='',text='1',color=red,location=location.belowbar,transp=transp)
+plotchar(buyCountdown>buyCountdown[1] and buyCountdown==2 and showBuyCountdown,char='',text='2',color=red,location=location.belowbar,transp=transp)
+plotchar(buyCountdown>buyCountdown[1] and buyCountdown==3 and showBuyCountdown,char='',text='3',color=red,location=location.belowbar,transp=transp)
+plotchar(buyCountdown>buyCountdown[1] and buyCountdown==4 and showBuyCountdown,char='',text='4',color=red,location=location.belowbar,transp=transp)
+plotchar(buyCountdown>buyCountdown[1] and buyCountdown==5 and showBuyCountdown,char='',text='5',color=red,location=location.belowbar,transp=transp)
+plotchar(buyCountdown>buyCountdown[1] and buyCountdown==6 and showBuyCountdown,char='',text='6',color=red,location=location.belowbar,transp=transp)
+plotchar(buyCountdown>buyCountdown[1] and buyCountdown==7 and showBuyCountdown,char='',text='7',color=red,location=location.belowbar,transp=transp)
+plotchar(buyCountdown>buyCountdown[1] and buyCountdown==8 and showBuyCountdown,char='',text='8',color=red,location=location.belowbar,transp=transp)
+plotchar(buyCountdown>buyCountdown[1] and buyCountdown==9 and showBuyCountdown,char='',text='9',color=red,location=location.belowbar,transp=transp)
+plotchar(buyCountdown>buyCountdown[1] and buyCountdown==10 and showBuyCountdown,char='',text='10',color=red,location=location.belowbar,transp=transp)
+plotchar(buyCountdown>buyCountdown[1] and buyCountdown==11 and showBuyCountdown,char='',text='11',color=red,location=location.belowbar,transp=transp)
+plotchar(buyCountdown>buyCountdown[1] and buyCountdown==12 and showBuyCountdown,char='',text='12',color=red,location=location.belowbar,transp=transp)
+plotshape(buyCountdown==13 and close <= low[2] and low > valuewhen(nz(buyCountdown[1]) == 7 and showBuyCountdown, close, 0), style=shape.cross, color=red, location=location.belowbar)
+plotshape(low <= valuewhen(nz(buyCountdown[1]) == 7, close, 0) and buyCountdown==13 and showBuyCountdown,text='13',textcolor=red,style=shape.arrowup,size=size.small,color=green,location=location.belowbar,transp=transp)
+
+// COUNTDOWN - SELL //
+
+// Cancelation Filter
+brokeSupport = barssince(high < TDSTSupport) < sinceSellNine // full candle traded below current tdst support
+sellCancelationFilter = lastSetupIsBuy or brokeSupport
+
+// Cancelation Qualifier 1
+lastSellHighestVal        = sellSetup == 9 ? highest(high, 9) : (sellSetup > 9 ? max(nz(lastSellHighestVal[1]), high) : nz(lastSellHighestVal[1]))
+lastSellSetupRange        = lastSellHighestVal - TDSTSupport
+secondLastSellRange       = sellSetup == 9 ? nz(lastSellSetupRange[1]) : nz(secondLastSellRange[1])
+sellCancelationQualifier1 = (secondLastSellRange <= lastSellSetupRange) and (lastSellSetupRange < 1.618 * secondLastSellRange)
+
+// Cancelation Qualifier 2
+lastSellHighestClose      = sellSetup == 9 ? highest(close, 9) : (sellSetup > 9 ? max(nz(lastSellHighestClose[1]), close) : nz(lastSellHighestClose[1]))
+lastSellLowestClose       = sellSetup == 9 ? lowest(close, 9) : (sellSetup > 9 ? min(nz(lastSellLowestClose[1]), close) : nz(lastSellLowestClose[1]))
+secondLastSellHighestVal  = sellSetup == 9 ? nz(lastSellHighestVal[1]) : nz(secondLastSellHighestVal[1])
+secondLastSellLowestVal   = sellSetup == 9 ? TDSTSupport[1] : nz(secondLastSellLowestVal[1])
+
+aboveSecondLastSellRange  = lastSellHighestClose > secondLastSellHighestVal
+belowSecondLastSellRange  = lastSellLowestClose < secondLastSellLowestVal
+sinceSecondLastSell       = sellSetup == 9 ? nz(sinceSellNine[1])+1 : nz(sinceSecondLastSell[1])+1
+buySetupBetweenTwoSells   = sinceSecondLastSell > sinceBuyNine and sinceBuyNine > sinceSellNine
+sellCancelationQualifier2 = aboveSecondLastSellRange or belowSecondLastSellRange or buySetupBetweenTwoSells
+
+// Miscellaneous
+initiateSellCountdown       = (close >= high[2]) and (sellSetup == 9 or barssince(close[1] >= high[3])+1 > sinceSellNine)
+sellCountdownCompleted      = high[1] >= valuewhen(nz(sellCountdown[1]) == 7, close, 0)
+newSellSetupDuringCountdown = barssince(sellSetup == 9) < barssince(sellCountdown[1] == 1)
+
+// Countdown Logic
+sellCountdown = if sellCancelationFilter
+	0
+else
+    if nz(sellCountdown[1]) == 0            // previous bar sellCountdown is 0
+        if initiateSellCountdown
+            1
+        else
+            0
+    else
+        if nz(sellCountdown[1]) < 13        // previous bar 0 < sellCountdown < 13
+            if newSellSetupDuringCountdown and (sellCancelationQualifier1 or sellCancelationQualifier2)
+                1
+            else
+                if close >= high[2]
+                    nz(sellCountdown[1]) + 1
+                else
+                    nz(sellCountdown[1])
+        else                                // previous bar sellCountdown is 13
+            if newSellSetupDuringCountdown and (sellCancelationQualifier1 or sellCancelationQualifier1)
+                1
+            else
+                if sellCountdownCompleted
+                    0
+                else
+                    nz(sellCountdown[1])    // completion is deferred until condition is satisfied
+
+// Number Plots
+plotchar(sellCountdown!=sellCountdown[1] and sellCountdown==1 and showSellCountdown,char='',text='1',color=green,location=location.belowbar,transp=transp)
+plotchar(sellCountdown>sellCountdown[1] and sellCountdown==2 and showSellCountdown,char='',text='2',color=green,location=location.belowbar,transp=transp)
+plotchar(sellCountdown>sellCountdown[1] and sellCountdown==3 and showSellCountdown,char='',text='3',color=green,location=location.belowbar,transp=transp)
+plotchar(sellCountdown>sellCountdown[1] and sellCountdown==4 and showSellCountdown,char='',text='4',color=green,location=location.belowbar,transp=transp)
+plotchar(sellCountdown>sellCountdown[1] and sellCountdown==5 and showSellCountdown,char='',text='5',color=green,location=location.belowbar,transp=transp)
+plotchar(sellCountdown>sellCountdown[1] and sellCountdown==6 and showSellCountdown,char='',text='6',color=green,location=location.belowbar,transp=transp)
+plotchar(sellCountdown>sellCountdown[1] and sellCountdown==7 and showSellCountdown,char='',text='7',color=green,location=location.belowbar,transp=transp)
+plotchar(sellCountdown>sellCountdown[1] and sellCountdown==8 and showSellCountdown,char='',text='8',color=green,location=location.belowbar,transp=transp)
+plotchar(sellCountdown>sellCountdown[1] and sellCountdown==9 and showSellCountdown,char='',text='9',color=green,location=location.belowbar,transp=transp)
+plotchar(sellCountdown>sellCountdown[1] and sellCountdown==10 and showSellCountdown,char='',text='10',color=green,location=location.belowbar,transp=transp)
+plotchar(sellCountdown>sellCountdown[1] and sellCountdown==11 and showSellCountdown,char='',text='11',color=green,location=location.belowbar,transp=transp)
+plotchar(sellCountdown>sellCountdown[1] and sellCountdown==12 and showSellCountdown,char='',text='12',color=green,location=location.belowbar,transp=transp)
+plotshape(sellCountdown==13 and close >= high[2] and high < valuewhen(nz(sellCountdown[1]) == 7 and showSellCountdown, close, 0), style=shape.cross, color=green, location=location.belowbar)
+plotshape(high >= valuewhen(nz(sellCountdown[1]) == 7, close, 0) and sellCountdown==13 and showSellCountdown,text='13',textcolor=green,style=shape.arrowdown,size=size.small,color=red,location=location.belowbar,transp=transp)
+
+// RISK LINES //
+
+buyCountdownLow = buyCountdown == 1 and nz(buyCountdown[1]) != 1 ? low : min(nz(buyCountdownLow[1]), low)
+buyRiskLine = buyCountdown == 13 and low <= valuewhen(nz(buyCountdown[1]) == 7, close, 0) ? 2*buyCountdownLow - valuewhen(change(buyCountdownLow)!=0, high, 0) : nz(buyRiskLine[1])
+buyRiskLineIntact = high >= buyRiskLine and (barssince(high < buyRiskLine) > barssince(buyCountdown == 13 and low <= valuewhen(nz(buyCountdown[1]) == 7, close, 0)))
+plot(buyRiskLineIntact and showRiskLines ? buyRiskLine : na, style=circles, linewidth=1, color=purple)
+
+sellCountdownHigh = sellCountdown == 1 and nz(sellCountdown[1]) != 1 ? high : max(nz(sellCountdownHigh[1]), high)
+sellRiskLine = sellCountdown == 13 and high >= valuewhen(nz(sellCountdown[1]) == 7, close, 0) ? 2*sellCountdownHigh - valuewhen(change(sellCountdownHigh)!=0, low, 0) : nz(sellRiskLine[1])
+sellRiskLineIntact = low <= sellRiskLine and (barssince(low > sellRiskLine) > barssince(sellCountdown == 13 and high >= valuewhen(nz(sellCountdown[1]) == 7, close, 0)))
+plot(sellRiskLineIntact and showRiskLines ? sellRiskLine : na, style=circles, linewidth=1, color=purple)
